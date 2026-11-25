@@ -11,7 +11,19 @@ The concept is the design intent, not the built geometry. The case and board bel
 
 ![Printable case, assembled](docs/case-preview.png)
 
-![Board copper, top and bottom](pcb_preview.png)
+![Board copper, top and bottom](docs/pcb-preview.png)
+
+## Layout
+| Path | Contents |
+|---|---|
+| `src/` | Python that generates everything: `geom.py` (dimensions), `board.py` (footprints and nets), `route.py`, `fab.py`, `kicad.py`, `stl.py` |
+| `gerber/` | Fabrication set: Gerbers, drill files, BOM |
+| `stl/` | Printable case parts |
+| `kicad/` | The routed board as a KiCad PCB, for KiCad's DRC |
+| `concept/` | Interactive 3D concept page |
+| `docs/` | Images used in this README |
+
+`./build.sh` regenerates `gerber/`, `stl/`, `kicad/` and the previews from `src/` (`pip install -r requirements.txt` first). The output is deterministic: a rebuild reproduces the Gerbers byte for byte. Change a dimension in `src/geom.py` and both the case and the board follow.
 
 Generated 2026-11-25. Nothing here has been printed, fabricated or powered. Treat it as a first prototype.
 
@@ -24,13 +36,13 @@ Generated 2026-11-25. Nothing here has been printed, fabricated or powered. Trea
 ## Printed parts (already in print orientation)
 | File | Size mm | Volume cm3 |
 |---|---|---|
-| pw-deck-bottom_shell.stl | 94.4 x 122.4 x 20.6 | 44.7 |
-| pw-deck-switch_plate.stl | 89.1 x 86.0 x 25.7 | 7.8 |
-| pw-deck-deck.stl | 89.1 x 32.2 x 10.2 | 5.0 |
-| pw-deck-flatten_guard.stl | 40.7 x 25.9 x 25.5 | 4.4 |
-| pw-deck-dial_disc.stl | 23.0 x 23.0 x 3.0 | 1.0 |
-| pw-deck-dial_knob.stl | 15.0 x 15.0 x 14.0 | 2.1 |
-| pw-deck-rear_riser_optional.stl | 80.0 x 14.0 x 8.0 | 8.4 |
+| stl/pw-deck-bottom_shell.stl | 94.4 x 122.4 x 20.6 | 44.7 |
+| stl/pw-deck-switch_plate.stl | 89.1 x 86.0 x 25.7 | 7.8 |
+| stl/pw-deck-deck.stl | 89.1 x 32.2 x 10.2 | 5.0 |
+| stl/pw-deck-flatten_guard.stl | 40.7 x 25.9 x 25.5 | 4.4 |
+| stl/pw-deck-dial_disc.stl | 23.0 x 23.0 x 3.0 | 1.0 |
+| stl/pw-deck-dial_knob.stl | 15.0 x 15.0 x 14.0 | 2.1 |
+| stl/pw-deck-rear_riser_optional.stl | 80.0 x 14.0 x 8.0 | 8.4 |
 
 - 0.4 mm nozzle, 0.2 mm layers. Only the bottom shell's USB opening bridges; no supports needed.
 - Print dial_disc in clear or natural filament; it is the light ring under the knob.
