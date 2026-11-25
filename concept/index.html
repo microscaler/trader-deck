@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PriceWhisperer Deck concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Single-theme studio scene: the device sits on a dark desk, UI is a thin frame around the 3D stage. */
+:root{
+  color-scheme: dark;
+  --ink:#0c111c;          /* page and desk */
+  --ink-2:#182236;        /* stage glow */
+  --panel:#131a28;        /* control surfaces */
+  --line:#2a3550;         /* hairlines */
+  --text:#e6ecf7;
+  --muted:#93a0ba;
+  --ice:#9fd0ff;          /* accent: utility LEDs and focus */
+  --buy:#22c58b;
+  --sell:#f25a55;
+  --amber:#ffb224;
+  --display:"Saira Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--ink);color:var(--text);font-family:var(--body);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
+  gap:4px 16px;padding:14px 16px 8px;
+}
+h1{
+  font-family:var(--display);font-weight:700;font-size:26px;line-height:1;
+  letter-spacing:.04em;text-transform:uppercase;margin:0;text-wrap:balance;
+}
+h1 span{color:var(--ice)}
+.spec{font-size:12.5px;color:var(--muted);margin:0;font-variant-numeric:tabular-nums}
+#stage{
+  flex:1 1 auto;min-height:0;position:relative;
+  background:radial-gradient(ellipse 75% 60% at 50% 55%,var(--ink-2),var(--ink) 75%);
+  touch-action:none;
+}
+#stage canvas{display:block;width:100%;height:100%;outline:none}
+#fallback{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  padding:24px;text-align:center;color:var(--muted);font-size:14px;
+}
+.hint{
+  position:absolute;left:0;right:0;bottom:8px;text-align:center;pointer-events:none;
+  font-size:12px;color:var(--muted);
+}
+footer{
+  background:var(--panel);border-top:1px solid var(--line);
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:10px;
+}
+#caption{margin:0;min-height:2.9em;font-size:14px;line-height:1.45;max-width:65ch}
+#caption b{
+  font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ice);margin-right:6px;
+}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.group{display:flex;align-items:center;gap:6px}
+.label{font-size:12px;color:var(--muted);margin-right:2px}
+button{
+  font:500 13px var(--body);color:var(--text);background:transparent;
+  border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;
+  min-height:34px;
+}
+button:hover{border-color:var(--muted)}
+button:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+button[aria-pressed="true"]{background:#1e2a42;border-color:var(--ice)}
+#pos-long[aria-pressed="true"]{border-color:var(--buy);color:var(--buy)}
+#pos-short[aria-pressed="true"]{border-color:var(--sell);color:var(--sell)}
+#arm[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+</style>
+</head>
+<body>
+<header>
+  <h1>PriceWhisperer <span>Deck</span></h1>
+  <p class="spec">Concept · 16 keys and a dial · 92 × 118 mm · USB-C</p>
+</header>
+
+<div id="stage">
+  <div id="fallback">This concept needs WebGL, which this browser has turned off.</div>
+  <div class="hint">Drag to rotate · pinch to zoom · tap a key</div>
+</div>
+
+<footer>
+  <p id="caption"><b>Deck</b>Sits beside your normal keyboard. Key lights follow your position and whether live orders are armed.</p>
+  <div class="controls">
+    <div class="group" role="group" aria-label="Position">
+      <span class="label">Position</span>
+      <button id="pos-flat" aria-pressed="true">Flat</button>
+      <button id="pos-long" aria-pressed="false">Long</button>
+      <button id="pos-short" aria-pressed="false">Short</button>
+    </div>
+    <div class="group">
+      <button id="arm" aria-pressed="false">Arm live orders</button>
+      <button id="reset">Reset view</button>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var captionEl=document.getElementById('caption');
+if(!window.THREE){document.getElementById('fallback').style.display='flex';return;}
+
+var C={buy:0x22c58b,sell:0xf25a55,amber:0xffb224,ice:0x9fd0ff,white:0xdfe8f7};
+var css={buy:'#22c58b',sell:'#f25a55',amber:'#ffb224',ice:'#9fd0ff',text:'#e6ecf7',muted:'#8c99b3'};
+var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- state ---------- */
+var tickers=['NVDA','TSLA','AMD','SPY'], frames=['1m','5m','15m','1h'];
+var S={pos:'flat',qty:0,armed:false,size:200,ticker:0,tf:1,guardOpen:false,trail:false};
+
+function lin(hex){return new THREE.Color(hex).convertSRGBToLinear();}
+/* ---------- renderer ---------- */
+var renderer;
+try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});}
+catch(e){document.getElementById('fallback').style.display='flex';return;}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.25;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.insertBefore(renderer.domElement,stage.firstChild);
+
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(35,1,0.5,200);
+var TARGET=new THREE.Vector3(0,1.3,0);
+var VIEW=new THREE.Vector3(5.5,17,13.5).normalize();
+
+/* studio environment for the metal: a dark room with three soft panels */
+(function(){
+  var pm=new THREE.PMREMGenerator(renderer);
+  var es=new THREE.Scene();
+  es.background=new THREE.Color(0x070a11);
+  function panel(w,h,col,x,y,z){
+    var m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide}));
+    m.position.set(x,y,z);m.lookAt(0,0,0);es.add(m);
+  }
+  panel(16,10,0xffffff,0,14,2);
+  panel(6,12,0x9fc4ff,-14,5,-4);
+  panel(5,9,0xffd9b0,13,4,6);
+  panel(20,3,0x55627c,0,3,-15);
+  scene.environment=pm.fromScene(es,0.03).texture;
+  pm.dispose();
+})();
+
+scene.add(new THREE.HemisphereLight(0xbfd4ff,0x0c111c,0.35));
+var key=new THREE.DirectionalLight(0xffffff,1.1);
+key.position.set(-7,16,9);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-14;key.shadow.camera.right=14;key.shadow.camera.top=14;key.shadow.camera.bottom=-14;
+key.shadow.camera.near=1;key.shadow.camera.far=50;key.shadow.radius=6;key.shadow.bias=-0.0006;
+scene.add(key);
+
+var ground=new THREE.Mesh(new THREE.PlaneGeometry(120,120),new THREE.ShadowMaterial({opacity:0.5}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+/* ---------- geometry helpers ---------- */
+function rr(w,h,r){
+  var s=new THREE.Shape(),x=-w/2,y=-h/2;
+  s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);
+  s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);
+  s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);
+  return s;
+}
+/* rounded slab lying flat: spans y from -bevel to h+bevel */
+function slab(w,d,h,r,bevel){
+  var g=new THREE.ExtrudeGeometry(rr(w,d,r),{depth:h,bevelEnabled:bevel>0,bevelSize:bevel,bevelThickness:bevel,bevelSegments:4,curveSegments:10});
+  g.rotateX(-Math.PI/2);return g;
+}
+function flat(w,d){var g=new THREE.PlaneGeometry(w,d);g.rotateX(-Math.PI/2);return g;}
+function canvasTex(w,h){
+  var c=document.createElement('canvas');c.width=w;c.height=h;
+  var t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;
+  t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  return {c:c,ctx:c.getContext('2d'),t:t};
+}
+
+/* ---------- device ---------- */
+var device=new THREE.Group();
+device.rotation.x=-0.07;           /* wedge: back edge sits higher */
+device.position.y=0.5;
+scene.add(device);
+
+var W=9.2,D=11.8,TOP=1.5,PITCH=1.9;
+var mBody=new THREE.MeshStandardMaterial({color:lin(0x4a5468),metalness:0.92,roughness:0.36,envMapIntensity:1.1});
+var mPlate=new THREE.MeshStandardMaterial({color:lin(0x12161f),metalness:0.3,roughness:0.75});
+var mCap=new THREE.MeshStandardMaterial({color:lin(0x2c3445),metalness:0.05,roughness:0.55});
+var mSwitch=new THREE.MeshStandardMaterial({color:lin(0x0b0e14),roughness:0.8});
+
+var body=new THREE.Mesh(slab(W-0.2,D-0.2,1.4,0.7,0.1),mBody);
+body.castShadow=true;body.receiveShadow=true;device.add(body);
+var plate=new THREE.Mesh(slab(W-0.7,D-0.7,0.03,0.5,0),mPlate);
+plate.position.y=TOP;plate.receiveShadow=true;device.add(plate);
+
+/* key legends */
+function legend(k){
+  var o=canvasTex(k.wide?512:256,256),g=o.ctx,w=o.c.width,cx=w/2;
+  g.clearRect(0,0,w,256);g.textAlign='center';g.textBaseline='middle';
+  g.fillStyle=k.ink||css.text;
+  if(k.tri){
+    g.beginPath();var d=k.tri;
+    g.moveTo(cx-34*d,104);g.lineTo(cx+30*d,66);g.lineTo(cx+30*d,142);g.closePath();g.fill();
+  }else{
+    g.font='700 '+(k.big||78)+'px "Saira Condensed","Arial Narrow",sans-serif';
+    g.fillText(k.l,cx,104);
+  }
+  g.globalAlpha=0.72;
+  g.font='600 34px "Saira Condensed","Arial Narrow",sans-serif';
+  g.fillText(k.s,cx,188);
+  o.t.needsUpdate=true;return o.t;
+}
+
+var KEYS=[
+ {id:'buy_mkt', r:0,c:0,l:'BUY', s:'MARKET',kind:'buy', tint:0x1d7a5c,ink:'#eafff6',tip:'Buys your set size at market.'},
+ {id:'buy_ask', r:0,c:1,l:'BUY', s:'AT ASK',kind:'buy', tint:0x1d7a5c,ink:'#eafff6',tip:'Places a limit buy at the current ask.'},
+ {id:'sell_bid',r:0,c:2,l:'SELL',s:'AT BID',kind:'sell',tint:0x8f3335,ink:'#fff0ef',tip:'Places a limit sell at the current bid.'},
+ {id:'sell_mkt',r:0,c:3,l:'SELL',s:'MARKET',kind:'sell',tint:0x8f3335,ink:'#fff0ef',tip:'Sells your set size at market.'},
+ {id:'half',    r:1,c:0,l:'½',  s:'SIZE',kind:'util',tip:'Halves the order size.'},
+ {id:'double',  r:1,c:1,l:'2×', s:'SIZE',kind:'util',tip:'Doubles the order size.'},
+ {id:'be',      r:1,c:2,l:'B/E', s:'STOP',kind:'util',tip:'Moves your stop to breakeven.'},
+ {id:'trail',   r:1,c:3,l:'TRAIL',s:'STOP',kind:'util',big:64,tip:'Turns the trailing stop on or off.'},
+ {id:'tk_prev', r:2,c:0,tri:1, s:'TICKER',kind:'util',tip:'Previous ticker on your watchlist.'},
+ {id:'tk_next', r:2,c:1,tri:-1,s:'TICKER',kind:'util',tip:'Next ticker on your watchlist.'},
+ {id:'tf_down', r:2,c:2,l:'−',s:'TIMEFRAME',kind:'util',tip:'Shorter chart timeframe.'},
+ {id:'tf_up',   r:2,c:3,l:'+',  s:'TIMEFRAME',kind:'util',tip:'Longer chart timeframe.'},
+ {id:'arm',     r:3,c:0,l:'ARM', s:'LIVE',kind:'arm',tip:''},
+ {id:'cancel',  r:3,c:1,l:'CANCEL',s:'ALL ORDERS',kind:'util',big:56,tip:'Cancels every working order.'},
+ {id:'flatten', r:3,c:2.5,wide:true,l:'FLATTEN',s:'CLOSE POSITION',kind:'flat',tint:0xd98a1c,ink:'#1a1206',tip:''}
+];
+var ROWZ=[-1.6,0.3,2.2,4.1];
+var capGeo=new THREE.ExtrudeGeometry(rr(1.56,1.56,0.2),{depth:0.55,bevelEnabled:true,bevelSize:0.07,bevelThickness:0.07,bevelSegments:4,curveSegments:8});
+capGeo.rotateX(-Math.PI/2);
+var capGeoWide=new THREE.ExtrudeGeometry(rr(3.46,1.56,0.2),{depth:0.55,bevelEnabled:true,bevelSize:0.07,bevelThickness:0.07,bevelSegments:4,curveSegments:8});
+capGeoWide.rotateX(-Math.PI/2);
+var pickables=[];
+function glowTex(wide){
+  var o=canvasTex(wide?230:128,128),g=o.ctx,w=o.c.width;
+  g.clearRect(0,0,w,128);g.shadowColor='#fff';g.shadowBlur=13;g.fillStyle='#fff';
+  var x=17,y=17,W2=w-34,H2=94,r=12;
+  g.beginPath();g.moveTo(x+r,y);g.arcTo(x+W2,y,x+W2,y+H2,r);g.arcTo(x+W2,y+H2,x,y+H2,r);g.arcTo(x,y+H2,x,y,r);g.arcTo(x,y,x+W2,y,r);g.closePath();g.fill();
+  o.t.needsUpdate=true;return o.t;
+}
+var glowSq=glowTex(false),glowWide=glowTex(true);
+
+function buildKeys(){
+  KEYS.forEach(function(k){
+    var x=(k.c-1.5)*PITCH, z=ROWZ[k.r], w=k.wide?3.6:1.7;
+    var led=new THREE.Mesh(flat(w+0.7,2.4),new THREE.MeshBasicMaterial({map:k.wide?glowWide:glowSq,color:lin(C.ice),transparent:true,opacity:0.3,blending:THREE.AdditiveBlending,depthWrite:false}));
+    led.position.set(x,TOP+0.04,z);device.add(led);k.led=led;
+    var sw=new THREE.Mesh(new THREE.BoxGeometry(w-0.4,0.34,1.3),mSwitch);
+    sw.position.set(x,TOP+0.2,z);device.add(sw);
+    var grp=new THREE.Group();grp.position.set(x,TOP+0.4,z);device.add(grp);
+    var mat=k.tint?new THREE.MeshStandardMaterial({color:lin(k.tint),metalness:0.05,roughness:0.5}):mCap;
+    var cap=new THREE.Mesh(k.wide?capGeoWide:capGeo,mat);
+    cap.castShadow=true;cap.userData.key=k;grp.add(cap);pickables.push(cap);
+    var lg=new THREE.Mesh(flat(k.wide?3.2:1.5,1.5),new THREE.MeshBasicMaterial({map:legend(k),transparent:true,depthWrite:false}));
+    lg.position.y=0.626;grp.add(lg);
+    k.grp=grp;k.baseY=grp.position.y;k.press=0;k.x=x;k.z=z;
+  });
+}
+
+/* guard over FLATTEN: clear red cover hinged on its back edge */
+var guard=new THREE.Group();
+var guardMesh=new THREE.Mesh(new THREE.BoxGeometry(3.86,0.95,1.86),
+  new THREE.MeshStandardMaterial({color:lin(0xff4a3d),transparent:true,opacity:0.34,roughness:0.08,metalness:0,side:THREE.DoubleSide,depthWrite:false}));
+guardMesh.position.set(0,0.5,0.93);guardMesh.userData.guard=true;guard.add(guardMesh);
+var hinge=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,3.86,16),mBody);
+hinge.rotation.z=Math.PI/2;guard.add(hinge);
+guard.position.set(1.0*PITCH,TOP+0.34,ROWZ[3]-0.93);
+device.add(guard);pickables.push(guardMesh);
+var guardAngle=0;
+
+/* status display */
+var disp=canvasTex(1024,288);
+var bezel=new THREE.Mesh(slab(5.3,1.72,0.1,0.18,0),mSwitch);
+bezel.position.set(-1.25,TOP+0.02,-4.45);device.add(bezel);
+var screen=new THREE.Mesh(flat(5.0,1.42),new THREE.MeshBasicMaterial({map:disp.t,toneMapped:false}));
+screen.position.set(-1.25,TOP+0.13,-4.45);device.add(screen);
+
+function drawDisplay(){
+  var g=disp.ctx;g.fillStyle='#05070b';g.fillRect(0,0,1024,288);
+  var f='"Saira Condensed","Arial Narrow",sans-serif';
+  g.textBaseline='alphabetic';g.textAlign='left';
+  g.fillStyle=css.text;g.font='700 132px '+f;g.fillText(tickers[S.ticker],40,150);
+  g.fillStyle=css.muted;g.font='600 50px '+f;
+  g.fillText(frames[S.tf]+'  ·  SIZE '+S.size+(S.trail?'  ·  TRAIL':''),44,236);
+  var col=S.pos==='long'?css.buy:S.pos==='short'?css.sell:css.muted;
+  g.textAlign='right';g.fillStyle=col;g.font='700 96px '+f;
+  g.fillText(S.pos==='flat'?'FLAT':(S.pos==='long'?'LONG ':'SHORT ')+S.qty,984,138);
+  var bw=250,bx=984-bw,by=176;
+  g.fillStyle=S.armed?css.amber:'#1b2231';g.fillRect(bx,by,bw,74);
+  g.fillStyle=S.armed?'#1a1206':css.muted;g.textAlign='center';g.font='700 52px '+f;
+  g.fillText(S.armed?'ARMED':'SAFE',bx+bw/2,by+55);
+  disp.t.needsUpdate=true;
+}
+
+/* dial */
+var dial=new THREE.Group();dial.position.set(3.0,TOP,-4.45);device.add(dial);
+var ringMat=new THREE.MeshBasicMaterial({color:C.ice,transparent:true,opacity:0.8});
+var ring=new THREE.Mesh(new THREE.TorusGeometry(0.86,0.07,12,48),ringMat);
+ring.rotation.x=Math.PI/2;ring.position.y=0.09;dial.add(ring);
+var knob=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.76,0.95,48),
+  new THREE.MeshStandardMaterial({color:lin(0xc3cad6),metalness:1,roughness:0.24,envMapIntensity:1.2}));
+knob.position.y=0.6;knob.castShadow=true;knob.userData.dial=true;dial.add(knob);pickables.push(knob);
+var tick=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.02,0.36),new THREE.MeshBasicMaterial({color:lin(0x0b0e14)}));
+tick.position.set(0,0.485,-0.38);knob.add(tick);
+var knobTurn=0;
+
+/* USB-C lead out of the back */
+(function(){
+  var boot=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.42,0.7),mSwitch);
+  boot.position.set(0,0.75,-6.15);device.add(boot);
+  var curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,0.75,-6.4),new THREE.Vector3(0,0.7,-7.5),new THREE.Vector3(-1.0,0.5,-9.2),
+    new THREE.Vector3(-3.6,0.42,-11.5),new THREE.Vector3(-8,0.65,-14.5),new THREE.Vector3(-16,1.1,-18)]);
+  var cable=new THREE.Mesh(new THREE.TubeGeometry(curve,80,0.14,10,false),
+    new THREE.MeshStandardMaterial({color:lin(0x1c2230),roughness:0.6}));
+  cable.castShadow=true;device.add(cable);
+})();
+
+/* ---------- state to lights ---------- */
+function setLed(k,color,op){k.led.material.color.setHex(color).convertSRGBToLinear();k.targetOp=op;}
+function applyState(){
+  var posCol=S.pos==='long'?C.buy:S.pos==='short'?C.sell:C.ice;
+  KEYS.forEach(function(k){
+    if(k.kind==='buy') setLed(k,C.buy,S.armed?0.95:0.14);
+    else if(k.kind==='sell') setLed(k,C.sell,S.armed?0.95:0.14);
+    else if(k.kind==='arm') setLed(k,C.amber,S.armed?1:0.2);
+    else if(k.kind==='flat') setLed(k,S.pos==='flat'?C.amber:posCol,S.pos==='flat'?0.25:1);
+    else if(k.id==='trail') setLed(k,S.trail?posCol:C.ice,S.trail?0.9:0.3);
+    else setLed(k,C.ice,0.3);
+  });
+  ringMat.color.setHex(posCol).convertSRGBToLinear();
+  drawDisplay();
+  press('pos-flat',S.pos==='flat');press('pos-long',S.pos==='long');press('pos-short',S.pos==='short');
+  press('arm',S.armed);
+  document.getElementById('arm').textContent=S.armed?'Live orders armed':'Arm live orders';
+}
+function press(id,on){document.getElementById(id).setAttribute('aria-pressed',on?'true':'false');}
+function say(title,text){
+  captionEl.textContent='';
+  var b=document.createElement('b');b.textContent=title;captionEl.appendChild(b);
+  captionEl.appendChild(document.createTextNode(text));
+}
+function setPos(p){S.pos=p;S.qty=p==='flat'?0:S.size;if(p==='flat')S.trail=false;applyState();}
+
+function fire(k){
+  k.press=1;
+  var t=tickers[S.ticker];
+  switch(k.kind){
+    case 'buy': case 'sell':
+      if(!S.armed){say(k.l+' '+k.s,'Nothing sent. Live orders are not armed, so press ARM first.');return;}
+      var dir=k.kind==='buy'?'long':'short';
+      if(S.pos==='flat'){setPos(dir);say(k.l+' '+k.s,k.tip+' You are now '+dir+' '+S.qty+' '+t+'.');}
+      else if(S.pos===dir){S.qty+=S.size;applyState();say(k.l+' '+k.s,'Added '+S.size+'. You are now '+dir+' '+S.qty+' '+t+'.');}
+      else{setPos('flat');say(k.l+' '+k.s,'Closed your '+t+' position. You are flat.');}
+      return;
+    case 'arm':
+      S.armed=!S.armed;applyState();
+      say('Arm',S.armed?'Live orders are armed. Buy and sell keys light up and will send orders.':'Safe. Buy and sell keys go dim and send nothing.');
+      return;
+    case 'flat':
+      if(!S.guardOpen){S.guardOpen=true;say('Flatten','Guard lifted. Press FLATTEN to close the whole position.');return;}
+      var had=S.pos!=='flat';setPos('flat');S.guardOpen=false;
+      say('Flatten',had?'Closed the '+t+' position at market and cancelled its orders. Guard dropped back.':'No open position in '+t+'. Guard dropped back.');
+      return;
+  }
+  switch(k.id){
+    case 'half': S.size=Math.max(25,Math.round(S.size/2));break;
+    case 'double': S.size=Math.min(3200,S.size*2);break;
+    case 'trail': if(S.pos!=='flat')S.trail=!S.trail;break;
+    case 'tk_prev': S.ticker=(S.ticker+tickers.length-1)%tickers.length;break;
+    case 'tk_next': S.ticker=(S.ticker+1)%tickers.length;break;
+    case 'tf_down': S.tf=Math.max(0,S.tf-1);break;
+    case 'tf_up': S.tf=Math.min(frames.length-1,S.tf+1);break;
+  }
+  applyState();
+  var extra='';
+  if(k.id==='half'||k.id==='double') extra=' Size is now '+S.size+'.';
+  if(k.id==='trail') extra=S.pos==='flat'?' Needs an open position.':(S.trail?' Trailing stop on.':' Trailing stop off.');
+  if(k.id==='tk_prev'||k.id==='tk_next') extra=' Now on '+tickers[S.ticker]+'.';
+  if(k.id==='tf_down'||k.id==='tf_up') extra=' Now '+frames[S.tf]+'.';
+  say((k.l||(k.tri>0?'Previous':'Next'))+' '+k.s,k.tip+extra);
+}
+
+/* ---------- camera and controls ---------- */
+var controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.target.copy(TARGET);controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.enablePan=false;controls.minDistance=13;controls.maxDistance=60;
+controls.maxPolarAngle=Math.PI*0.47;
+controls.autoRotate=!reduceMotion;controls.autoRotateSpeed=0.5;
+
+function homeDistance(){var a=camera.aspect;return Math.max(28,25/a);}
+function home(){camera.position.copy(TARGET).addScaledVector(VIEW,homeDistance());controls.update();}
+function resize(){
+  var w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+resize();home();
+if(window.ResizeObserver)new ResizeObserver(function(){var first=!resize.done;resize();resize.done=true;if(first)home();}).observe(stage);
+else window.addEventListener('resize',resize);
+
+/* tap versus drag */
+var ray=new THREE.Raycaster(),down=null;
+renderer.domElement.addEventListener('pointerdown',function(e){
+  controls.autoRotate=false;down={x:e.clientX,y:e.clientY,t:performance.now()};
+});
+renderer.domElement.addEventListener('pointerup',function(e){
+  if(!down)return;
+  var moved=Math.hypot(e.clientX-down.x,e.clientY-down.y),dt=performance.now()-down.t;down=null;
+  if(moved>7||dt>500)return;
+  var r=renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera({x:((e.clientX-r.left)/r.width)*2-1,y:-((e.clientY-r.top)/r.height)*2+1},camera);
+  var hit=ray.intersectObjects(pickables,false)[0];if(!hit)return;
+  var u=hit.object.userData;
+  if(u.guard){
+    S.guardOpen=!S.guardOpen;
+    say('Flatten',S.guardOpen?'Guard lifted. Press FLATTEN to close the whole position.':'Guard down. FLATTEN cannot be pressed by accident.');
+  }else if(u.dial){
+    S.size=S.size>=3200?25:Math.min(3200,S.size+25);knobTurn+=0.5;applyState();
+    say('Dial','Turn to set order size in steps of 25. Size is now '+S.size+'. Its ring shows your position.');
+  }else if(u.key){fire(u.key);}
+});
+
+document.getElementById('pos-flat').addEventListener('click',function(){setPos('flat');say('Position','Flat. Lights rest in ice blue.');});
+document.getElementById('pos-long').addEventListener('click',function(){setPos('long');say('Position','Long '+S.qty+' '+tickers[S.ticker]+'. The dial ring and FLATTEN turn green.');});
+document.getElementById('pos-short').addEventListener('click',function(){setPos('short');say('Position','Short '+S.qty+' '+tickers[S.ticker]+'. The dial ring and FLATTEN turn red.');});
+document.getElementById('arm').addEventListener('click',function(){fire(KEYS[12]);});
+document.getElementById('reset').addEventListener('click',function(){controls.autoRotate=false;controls.target.copy(TARGET);home();});
+
+/* ---------- loop ---------- */
+var clock=new THREE.Clock();
+function frame(){
+  var dt=Math.min(clock.getDelta(),0.05),ease=reduceMotion?1:1-Math.pow(0.0005,dt);
+  KEYS.forEach(function(k){
+    if(!k.grp)return;
+    k.press=Math.max(0,k.press-dt*5);
+    k.grp.position.y=k.baseY-0.2*Math.sin(Math.min(1,k.press)*Math.PI);
+    var m=k.led.material;m.opacity+=((k.targetOp||0)-m.opacity)*ease;
+  });
+  var ga=S.guardOpen?-1.3:0;guardAngle+=(ga-guardAngle)*ease;guard.rotation.x=guardAngle;
+  knob.rotation.y+=(-knobTurn-knob.rotation.y)*ease;
+  controls.update();renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+
+function start(){buildKeys();applyState();frame();}
+var fontsReady=(document.fonts&&document.fonts.load)?Promise.all([
+  document.fonts.load('700 78px "Saira Condensed"'),document.fonts.load('600 34px "Saira Condensed"')]):Promise.resolve();
+Promise.race([fontsReady,new Promise(function(r){setTimeout(r,1500);})]).then(start,start);
+})();
+</script>
+</body>
+</html>

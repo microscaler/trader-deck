@@ -1,5 +1,18 @@
 # PriceWhisperer Deck, rev A: case and board files
 
+![PriceWhisperer Deck 3D concept, turning](docs/concept-turntable.gif)
+
+## 3D concept
+The original concept is in [`concept/index.html`](concept/index.html). Open it in a browser to rotate it, tap keys, arm live orders and flip the FLATTEN guard. It loads three.js from a CDN, so it needs a network connection.
+
+![Concept still: long position, live orders armed](docs/concept.png)
+
+The concept is the design intent, not the built geometry. The case and board below differ from it in the ways listed under "What changed from the 3D concept".
+
+![Printable case, assembled](docs/case-preview.png)
+
+![Board copper, top and bottom](pcb_preview.png)
+
 Generated 2026-11-25. Nothing here has been printed, fabricated or powered. Treat it as a first prototype.
 
 ## What changed from the 3D concept
