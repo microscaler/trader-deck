@@ -1,0 +1,7 @@
+numpy
+shapely>=2.0
+trimesh
+manifold3d
+mapbox_earcut
+matplotlib
+Hershey-Fonts

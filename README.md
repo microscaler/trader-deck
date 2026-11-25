@@ -33,6 +33,44 @@ Generated 2026-11-25. Nothing here has been printed, fabricated or powered. Trea
 - The display and dial sit on a raised deck, 5.5 mm above the switch plate.
 - Outside size 94.4 x 122.4 mm, 20.6 mm tall at the deck, flat-bottomed. The optional rear riser tilts it about 4 degrees.
 
+## Parts list
+Links were found by web search on 2026-11-25 and not opened one by one. Check stock, price and shipping before ordering. Refs match `gerber/pw-deck-BOM.csv`.
+
+### Electronics
+| Qty | Part | Refs | Where to buy |
+|---|---|---|---|
+| 1 | Waveshare RP2040-Zero (no headers) | U1 | [Waveshare](https://waveshare.com/rp2040-zero.htm) |
+| 15 | Kailh MX hot-swap socket, CPG151101S11 | SW1-SW15 | [KBDfans](https://kbdfans.com/collections/all/products/mechanical-keyboard-switches-kailh-pcb-socket), [Keyboardio, pack of 25](https://shop.keyboard.io/products/kailh-hotswap-sockets-for-mx-style-keyswitches-x-25), [Elecrow](https://www.elecrow.com/kailh-pcb-socket-sip-socket-hot-swappable-hot-plug-cpg151101s11-for-mechanical-keyboard.html) |
+| 17 (buy 20) | SK6812MINI-E reverse-mount RGB LED, LCSC C5149201, sold in fives | LED1-LED15, LEDR1, LEDR2 | [LCSC](https://www.lcsc.com/product-detail/C5149201.html) |
+| 16 | 1N4148W diode, SOD-123, LCSC C81598 | D1-D16 | [LCSC](https://www.lcsc.com/product-detail/C81598.html) |
+| 2 (min 20) | 10 uF 25 V X5R capacitor, 0805, Samsung CL21A106KAYNNNE, LCSC C15850 | C1, C2 | [LCSC](https://www.lcsc.com/product-detail/C15850.html) |
+| 1 | Alps EC11E15244G1 encoder: push switch, 30 detents, 6 mm D-shaft, 20 mm | ENC1 | [Octopart (all distributors)](https://octopart.com/part/alps/EC11E15244G1), [RS](https://ie.rs-online.com/web/p/mechanical-rotary-encoders/7295589), [Avnet](https://www.avnet.com/americas/product/alps-alpine/ec11e15244g1/evolve-169179) |
+| 1 | 2.08 in 256x64 OLED module, SH1122, 7-pin SPI, 70.5 x 22.5 mm board | wired to J1 | [Open Electronics](https://oe2.open-electronics.org/?p=42977) |
+| 1 strip | 2.54 mm 1x40 pin header, LCSC C2337: cut off 7 pins, or use 7 short wires | J1 | [LCSC](https://www.lcsc.com/product-detail/C2337.html) |
+| 5 (fab minimum) | The PCB: 2 layers, 1.6 mm, upload `gerber/` | | [JLCPCB](https://jlcpcb.com/features/pcb-prototype), [PCBWay](https://www.pcbway.com/) |
+
+### Mechanical
+| Qty | Part | Where to buy |
+|---|---|---|
+| 15 (2 packs of 10) | MX-style switches, 3-pin or 5-pin, with an LED slot | [Gateron KS-9, 10 per pack (Apos)](https://apos.audio/collections/all/products/gateron-switches), [Gateron Blue, sold in tens (Mechboards)](https://www.mechboards.co.uk/products/gateron-blue), [price comparison (kbd.news)](https://kbd.news/switch/MX) |
+| 14 (2 packs of 10) | 1u keycaps. Relegendable caps take a printed paper legend under a clear cover, which suits BUY, SELL, ARM and the rest | [Adafruit relegendable, 10 pack](https://www.adafruit.com/products/5039), [black relegendable DSA, set of 10 (MechanicalKeyboards)](https://mechanicalkeyboards.com/products/mk-1x1-dsa-relegendable-black-with-clear-top-set-of-10), [blank DSA singles (Signature Plastics)](https://spkeyboards.com/products/sp-dsa-1-space) |
+| 1 | 2u keycap for FLATTEN, DSA profile, standard stabiliser mounts | [DSA 2u single (Signature Plastics)](https://spkeyboards.com/products/sp-dsa-2-space) |
+| 1 | 2u plate-mount stabiliser, Cherry style | [KBDfans (sold as a set)](https://kbdfans.com/products/cherry-plate-mounted-stablizers) |
+| 8 | M2 x 8 self-tapping screws, pan head | [Elecrow, bag of 200](https://elecrow.com/m2-screw-8mm.html) |
+| 4 | Stick-on feet, 3M Bumpon SJ5003, 11.2 mm x 5 mm | [Buerklin, from 20](https://www.buerklin.com/en/self-adhesive-housing-bumper/p/20h175), [RS, bag of 56](https://uk.rs-online.com/web/p/anti-slip-pads/0236464) |
+| 1 strip | Polyimide (Kapton) tape, 10 mm, under the RP2040-Zero | [Adafruit](https://www.adafruit.com/products/3057), [Olimex via DigiKey](https://www.digikey.be/en/products/detail/olimex-ltd/KAPTON-TAPE10MM/19204468) |
+| 1 | USB-C to USB-C data cable, 1 m | [Pimoroni](https://shop.pimoroni.com/products/usb-c-to-usb-c-cable-1m-black) |
+| about 75 g | 1.75 mm filament for the case, e.g. Prusament PLA Galaxy Black. A 42 mm offcut is the guard hinge pin | [Prusa](https://shop.prusa3d.com/prusament/711-prusament-pla-prusa-galaxy-black-1kg.html), [Galaxus](https://www.galaxus.de/en/s1/product/prusa-prusament-pla-pla-175-mm-1000-g-black-3d-printer-filament-23959778) |
+| a few g | Clear filament for `dial_disc`, e.g. Prusament PETG Clear | [Prusa](https://prusa3d.com/product/prusament-petg-clear-1kg) |
+
+Notes:
+- The OLED must be the 70.5 x 22.5 mm board. The 72.5 x 27.4 mm breakout sold elsewhere does not fit the deck pocket.
+- Octopart lists a last-time-buy date for the EC11E15244G1, so stock may thin out. Any EC11 with a push switch, a 6 mm D-shaft and 20 mm length fits the footprint and the knob.
+- A plate-mount stabiliser is needed, not PCB-mount or screw-in: the board has no stabiliser holes.
+- Relegendable 2u caps are rare, so FLATTEN gets a plain 2u cap. Signature Plastics sells singles from over-runs, so colours and stock vary.
+- Some Prusa pages mark Galaxy Black PLA as discontinued in the non-NFC spool. Any 1.75 mm PLA or PETG works.
+- The foot recesses in `bottom_shell` are 11.6 mm across to take the SJ5003.
+
 ## Printed parts (already in print orientation)
 | File | Size mm | Volume cm3 |
 |---|---|---|
@@ -103,7 +141,7 @@ LEDR1/LEDR2 are the dial ring. LED n sits under SW n.
 
 ## Check before you spend money
 1. Display: the deck window assumes the glass is centred vertically on the module and sits 1 mm from the module's right-hand end. Measure yours; only the deck needs reprinting if it differs.
-2. SK6812MINI-E pin order (1 VDD, 2 DOUT, 3 GND, 4 DIN) is taken from the open-source kbd footprint. Confirm against your LED's datasheet.
+2. SK6812MINI-E pin order (1 VDD, 2 DOUT, 3 GND, 4 DIN) matches the open-source kbd footprint and a second public component listing. Still worth a glance at the datasheet for the exact LEDs you buy.
 3. Stabiliser cutouts for FLATTEN use the common Cherry plate-mount dimensions from memory. Test-fit on a scrap print.
 4. LEDs run from USB 5 V with 3.3 V data, which usually works but is outside the SK6812 spec. Cap brightness in firmware: 17 LEDs at full white exceeds 500 mA.
 5. There is no schematic or KiCad project behind these Gerbers. The board was placed and routed by script, so run it through your fab's DFM viewer before ordering.

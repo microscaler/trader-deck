@@ -1,0 +1,6 @@
+build/
+__pycache__/
+kicad/kgerb/
+kicad/*.png
+kicad/drc.json
+_to_delete/
